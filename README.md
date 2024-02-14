@@ -55,6 +55,7 @@ Usage: ./ez_letsencrypt.sh -h <hostname> [<options>]
     -w, --webrootdir <webroot_dir>  directory on host to store webroot challenge files
     -k, --checkcert                 show certificate issuer, subject and dates for given hostname
     -p, --pubkey                    show certificate pubkey for given hostname
+    -q, --quiet                     Run non-interactively & suppress all certbot output except errors
     -d, --dryrun                    test "renew" or "certonly" without saving any certificates to disk
     -r, --renew                     renew all previously obtained certificates that are near expiry
     -s, --selinux                   host is running centos with selinux enabled
@@ -127,6 +128,10 @@ Usage: ./ez_letsencrypt.sh -h <hostname> [<options>]
 ### `-p`, `--pubkey`: show certificate pubkey for given hostname
 
 - **OPTIONAL**: Using the provided hostname to define a domain, an OpenSSL s_client call is issued to port 443 of the domain and if successful will return `pubkey` information for the certificate being used by that domain
+
+### `-q`, `--quiet`: Run non-interactively & suppress all certbot output except errors
+
+- **OPTIONAL**: By default certbot runs in a mode unsuitable for headless execution. Use quiet mode for automation & extended scripting. 
 
 ### `-d`, `--dryrun`: test "renew" or "certonly" without saving any certificates to disk
 
