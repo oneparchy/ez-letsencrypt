@@ -13,6 +13,7 @@ dryrun=false
 renew=false
 selinux=false
 verbose=false
+quiet=false
 num_args=$#
 ### DEFAULT VALUES ###
 
@@ -28,6 +29,7 @@ Usage: $0 -h <hostname> [<options>]
     -w, --webrootdir <webroot_dir>  directory on host to store webroot challenge files
     -k, --checkcert                 show certificate issuer, subject and dates for given hostname
     -p, --pubkey                    show certificate pubkey for given hostname
+    -q, --quiet                     Run non-interactively & suppress all certbot output except errors
     -d, --dryrun                    test "renew" or "certonly" without saving any certificates to disk
     -r, --renew                     renew all previously obtained certificates that are near expiry
     -s, --selinux                   host is running centos with selinux enabled
@@ -194,30 +196,35 @@ run_certbot_container() {
     # Select appropriate staging arg
     case $dryrun in
         true) staging_arg="--dry-run"; ;;
-        *) staging_arg=""
+        *) staging_arg=""; ;;
     esac
+    case $quiet in
+        true) quiet_arg="--quiet"; docker_prompt="docker run -rm"; ;;	
+        *) quiet_arg=""; docker_prompt="docker run -it --rm"; ;;
+    esac
+
     # Select appropriate run call
     case $selinux in
         (true)
             case $renew in
                 (true)
-                    docker run -it --rm \
+                    $docker_prompt \
                     -v $le_certsdir:/etc/letsencrypt:z,rw \
                     -v $le_webrootdir:/data/letsencrypt:z,rw \
                     certbot/certbot \
                     renew \
                     --webroot --webroot-path=/data/letsencrypt \
-                    $staging_arg \
+                    $staging_arg $quiet_arg \
                     --rsa-key-size $rsa_key_size
                     ;;
                 (false )
-                    docker run -it --rm \
+                    $docker_prompt \
                     -v $le_certsdir:/etc/letsencrypt:z,rw \
                     -v $le_webrootdir:/data/letsencrypt:z,rw \
                     certbot/certbot \
                     certonly \
                     --webroot --webroot-path=/data/letsencrypt \
-                    $staging_arg \
+                    $staging_arg $quiet_arg \
                     $email_arg \
                     $domain_args \
                     --rsa-key-size $rsa_key_size \
@@ -228,23 +235,23 @@ run_certbot_container() {
         (false)
             case $renew in
                 (true)
-                    docker run -it --rm \
+                    $docker_prompt \
                     -v $le_certsdir:/etc/letsencrypt \
                     -v $le_webrootdir:/data/letsencrypt \
                     certbot/certbot \
                     renew \
                     --webroot --webroot-path=/data/letsencrypt \
-                    $staging_arg \
+                    $staging_arg $quiet_arg \
                     --rsa-key-size $rsa_key_size
                     ;;
                 (false )
-                    docker run -it --rm \
+                    $docker_prompt \
                     -v $le_certsdir:/etc/letsencrypt \
                     -v $le_webrootdir:/data/letsencrypt \
                     certbot/certbot \
                     certonly \
                     --webroot --webroot-path=/data/letsencrypt \
-                    $staging_arg \
+                    $staging_arg $quiet_arg \
                     $email_arg \
                     $domain_args \
                     --rsa-key-size $rsa_key_size \
@@ -259,6 +266,8 @@ run_certbot_container() {
 for arg in "$@"; do
   shift
   case "$arg" in
+    "--quiet")       set -- "$@" "-q" ;;
+    "-quiet")        echo "did you mean --quiet?"; usage ;;
     "--hostname")   set -- "$@" "-h" ;;
     "-hostname")    echo "did you mean --hostname?"; usage ;;
     "--email")      set -- "$@" "-e" ;;
@@ -288,7 +297,7 @@ for arg in "$@"; do
 done
 
 # parse user input for valid options
-while getopts "h:e:n:c:w:kpdrsuv" o; do
+while getopts "h:e:n:c:w:kpqdrsuv" o; do
     case "${o}" in
         h)
             le_hostname=${OPTARG}
@@ -314,6 +323,9 @@ while getopts "h:e:n:c:w:kpdrsuv" o; do
             pubkey=true
             openssl_pubkey
             exit 0;
+            ;;
+        q)
+            quiet=true
             ;;
         d)
             dryrun=true
@@ -342,6 +354,7 @@ case $verbose in
     (true)
         cat <<EOF
 [DEBUG] variable settings
+- quiet       = $quiet
 - hostname    = $le_hostname
 - email       = $le_email
 - nginx       = $le_nginx
