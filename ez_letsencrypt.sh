@@ -199,7 +199,7 @@ run_certbot_container() {
         *) staging_arg=""; ;;
     esac
     case $quiet in
-        true) quiet_arg="--quiet"; docker_prompt="docker run -rm"; ;;	
+        true) quiet_arg="--quiet"; docker_prompt="docker run --rm"; ;;	
         *) quiet_arg=""; docker_prompt="docker run -it --rm"; ;;
     esac
 
